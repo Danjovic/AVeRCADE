@@ -6,8 +6,8 @@ AVeRCADE Bootloader Instructions
 
 3: Burn the fuses:
    
-   a. ATMEGA328p   Low Fuse = 0xF7   High Fuse = 0xDA  Ext Fuse = 0x03
-
+   a. ATMEGA8      Low Fuse = 0x9F   High Fuse = 0xC0  
+   b. ATMEGA328p   Low Fuse = 0xF7   High Fuse = 0xDA  Ext Fuse = 0x03
 
 Notes: 
 The bootloader shall be burn in the microcontroller before soldering on the board.

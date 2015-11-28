@@ -11,6 +11,8 @@
  *  Author: Daniel Jose Viana - danjovic@hotmail.com
  *  
  *  Version 0.9 - 20 October 2015
+ *
+ *  This code is licensed under GPL V2.0
  */ 
 
 

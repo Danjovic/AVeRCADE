@@ -1,0 +1,13 @@
+# AVeRCADE Bill of Materials
+
+IC1   - ATMega328p AVR microcontroller, TQFP32 package
+D1,D2 - BZV55-C3V3 Zener Diode, SOD80 package
+LED1  - LED Red LED, 1206 package
+C1,C2 - 22pf Ceramic capacitor, 0805 package
+C3,C4 - 100nf Polyester/Ceramic capacitor, 1206 package
+R1,R2 - 68 Ohms Resistor, 1206 package
+R3    - 1K5 Resistor, 1206 package
+R4    - 2k2 Resistor, 1206 package
+R5    - 4K7 Resistor, 1206 package
+XT1   - 12MHz Crystal Crystal, HC49UP package
+K1    - USB-Mini B Receptacle 

@@ -9,6 +9,8 @@
  *  Author: Daniel Jose Viana - danjovic@hotmail.com
  *  
  *  Version 0.9 - 10 October 2015
+ *
+ *  This code is licensed under GPL V2.0
  */ 
 
 

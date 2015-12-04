@@ -10,6 +10,12 @@ TARGET = output/$(PROJECT).elf
 CC = avr-gcc
 CCXX = avr-g++
 
+FUSEOPT_8 = -U hfuse:w:0xc0:m -U lfuse:w:0x9f:m
+FUSEOPT_88 = -U hfuse:w:0xd6:m -U lfuse:w:0xdf:m -U efuse:w:0x00:m
+FUSEOPT_168 = -U hfuse:w:0xd6:m -U lfuse:w:0xdf:m -U efuse:w:0x00:m
+FUSEOPT_328 = -U lfuse:w:0xf7:m -U hfuse:w:0xda:m -U efuse:w:0x03:m
+
+
 ## Flags common to C, ASM, and Linker
 COMMON = -mmcu=$(MCU)
 
@@ -85,7 +91,7 @@ program:
 	avrdude -p $(MCU) -c usbasp  -U flash:w:output/$(PROJECT).hex:a 
 
 burnfuses:
-	avrdude -p $(MCU) -c usbasp  -U lfuse:w:0xff:m -U hfuse:w:0xdf:m -U efuse:w:0xf8:m 
+	avrdude -p $(MCU) -c usbasp  $(FUSEOPT)  
 
 ## Clean target
 .PHONY: clean

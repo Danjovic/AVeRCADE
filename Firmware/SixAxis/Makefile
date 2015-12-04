@@ -5,11 +5,16 @@
 
 ## General Flags
 PROJECT = AVeRCADE
-MCU = atmega328p
-
+MCU = atmega8
 TARGET = output/$(PROJECT).elf
 CC = avr-gcc
 CCXX = avr-g++
+
+FUSEOPT_8 = -U hfuse:w:0xc0:m -U lfuse:w:0x9f:m
+FUSEOPT_88 = -U hfuse:w:0xd6:m -U lfuse:w:0xdf:m -U efuse:w:0x00:m
+FUSEOPT_168 = -U hfuse:w:0xd6:m -U lfuse:w:0xdf:m -U efuse:w:0x00:m
+FUSEOPT_328 = -U lfuse:w:0xf7:m -U hfuse:w:0xda:m -U efuse:w:0x03:m
+
 
 ## Flags common to C, ASM, and Linker
 COMMON = -mmcu=$(MCU)
@@ -17,7 +22,7 @@ COMMON = -mmcu=$(MCU)
 ## Flags common to C only
 CFLAGS = $(COMMON)
 CONLYFLAGS = -std=gnu99
-CFLAGS += -Wall -gdwarf-2 -DF_CPU=12000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -ffunction-sections -fdata-sections
+CFLAGS += -Wall -gdwarf-2 -DF_CPU=16000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -ffunction-sections -fdata-sections
 CFLAGS += -MD -MP -MT $(*F).o
 
 ## Flags common to ASM only
@@ -83,10 +88,10 @@ $(TARGET): $(OBJECTS)
 
 ## Program
 program:
-	avrdude -p atmega328p -c usbasp  -U flash:w:output/$(PROJECT).hex:a 
+	avrdude -p $(MCU) -c usbasp  -U flash:w:output/$(PROJECT).hex:a 
 
 burnfuses:
-	avrdude -p atmega328p -c usbasp  -U lfuse:w:0xff:m -U hfuse:w:0xdf:m -U efuse:w:0xf8:m 
+	avrdude -p $(MCU) -c usbasp  $(FUSEOPT)  
 
 ## Clean target
 .PHONY: clean

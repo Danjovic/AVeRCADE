@@ -79,3 +79,10 @@ $RECYCLE.BIN/
 *.b#*
 *.s#*
 *.l#*
+
+# Winavr temp files
+*.eep
+*.map
+*.lss
+*.hex
+*.elf

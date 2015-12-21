@@ -10,7 +10,8 @@
  *  
  *  Author: Daniel Jose Viana - danjovic@hotmail.com
  *  
- *  Version 0.9 - 20 October 2015
+ *  Version 0.9 -  20 October 2015
+ *          0.93 - 20 December 2015
  *
  *  This code is licensed under GPL V2.0
  */ 
@@ -23,6 +24,7 @@
 #include <avr/io.h>
 #include <avr/wdt.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <string.h>
@@ -126,11 +128,36 @@ const PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] 
 #define B8 bit_is_clear(PINB,0)
 #define B9 bit_is_clear(PIND,7)
 
-#define A_Xaxis 3  // ADC Channel 3
-#define A_Yaxis 2  // ADC Channel 2
 
-#define B_Xaxis 0  // ADC Channel 0
-#define B_Yaxis 1  // ADC Channel 1
+
+#define AB_PIN  PINC
+
+#define A_PORT PORTC
+#define A_DDR  DDRC
+#define A_Power 5
+#define A_Xaxis 3  
+#define A_Yaxis 2  
+
+#define B_PORT PORTC
+#define B_DDR  DDRC
+#define B_Power 4
+#define B_Xaxis 0   
+#define B_Yaxis 1   
+
+
+
+#ifndef TCCR0B          /* compatibility between ATMega8 and ATMega88 */
+#   define TCCR0B   TCCR0
+#endif
+
+#ifndef TIFR0          
+#   define TIFR0   TIFR
+#endif
+
+
+#define mustPollControllers()	(TIFR0 & (1<<TOV0))
+#define clrPollControllers()	do { TIFR0 = (1<<TOV0); } while(0)
+
 
 
 typedef struct
@@ -150,6 +177,41 @@ static gamepad_report_t gamepad_report_2;
 
 static gamepad_report_t gamepad_report_1_old;
 static gamepad_report_t gamepad_report_2_old;
+
+
+// Sample Paddles
+void do_a_new_sample(void) {
+	uint8_t sample;
+	
+    // clear timer variable
+	uint8_t timer=255;				
+	
+	// reset external capacitors
+	A_PORT &= ~( (1<<A_Xaxis) | (1<<A_Yaxis) );	// short circuit capacitors
+	B_PORT &= ~( (1<<B_Xaxis) | (1<<B_Yaxis) );	// 
+	A_DDR |= ( (1<<A_Xaxis) | (1<<A_Yaxis) );	// 
+	B_DDR |= ( (1<<B_Xaxis) | (1<<B_Yaxis) );	//	
+		_delay_us(30);
+ 	// Release capacitors to charge   
+	A_DDR &= ~( (1<<A_Xaxis) | (1<<A_Yaxis) );
+	B_DDR &= ~( (1<<B_Xaxis) | (1<<B_Yaxis) );
+	_delay_us(10);
+	
+	// now measure time it takes for each input to flip to HIGH again
+	do {
+		sample = AB_PIN;
+		_delay_us(3);		 											// While capacitor hasn't charged the voltage is low
+		if ((sample & (1<<A_Yaxis)) ==0) gamepad_report_1.RYaxis=timer;	// which is the same as the button being pressed 
+		if ((sample & (1<<A_Xaxis)) ==0) gamepad_report_1.RXaxis=timer;	// and the 'timer' variable value is copied to the 
+																		// axis value.
+		if ((sample & (1<<B_Yaxis)) ==0) gamepad_report_2.RYaxis=timer;	// When the capacitor charges it is the same as the 
+		if ((sample & (1<<B_Xaxis)) ==0) gamepad_report_2.RXaxis=timer;	// button being released and the 'timer' value will 
+	} while (--timer);													// not be copied to the axis value, remaining at the
+																		// former 'timer' value 
+}
+
+
+
 
 usbMsgLen_t usbFunctionSetup(uint8_t data[8])
 {
@@ -218,22 +280,29 @@ int main()
     
 	// Configure I/O PORTS - All Digital Inputs (ARCADE)
 	DDRB = 0;
-	DDRC = 0;
+	DDRC = 0; 
 	DDRD = 0;
 	// Configure Pullups except for Pins PD2 and PD3
 	PORTB = 0xff;
 	PORTC = 0xff;
 	PORTD = 0xf3;      // 1 1 1 1 0 0 1 1
 	
-	// Configure ADC	
-    ADMUX = (1<<REFS0 | 1<<ADLAR );  // AREF = AVcc, Left Justified
-
-    // 12000000/128 = 93750Hz  
-    ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);  // ADC Enable and prescaler of 128
+	// Turn on Power for Paddles
+	A_DDR |= (1<<A_Power);
+	A_PORT |= (1<<A_Power);
 	
+	B_DDR |= (1<<B_Power);
+	B_PORT |= (1<<B_Power);
+	
+
+	// Inicializa timer 0 - prescaler 1024, Clear em overflow -> 61,03Hz
+	TCCR0B = ( (1<<CS02) |  (1<<CS00) ); 
+
 	 
 	// Configure timer 	
 	TCCR1B = _BV(CS12) | _BV(CS11); // timer is initialized, used to keep track of idle period
+	
+	
 	
 	// Start the show!
 	usbInit(); // start v-usb
@@ -244,6 +313,14 @@ int main()
     sei(); // enable interrupts
 	
 	uint8_t to_send = 1; // boolean, true for first time
+
+
+		gamepad_report_1.RXaxis=0;
+		gamepad_report_1.RYaxis=0;		
+		gamepad_report_2.RXaxis=0;
+		gamepad_report_2.RYaxis=0;
+
+
 	
 	while (1)
 	{
@@ -256,25 +333,7 @@ int main()
 		
 		// Initialize report. No buttons pressed, directional at center
 		gamepad_report_1.XY_Button1=5;
-		gamepad_report_1.RXaxis=0;
-		gamepad_report_1.RYaxis=0;		
-
-		gamepad_report_2.XY_Button1=5;
-		gamepad_report_2.RXaxis=0;
-		gamepad_report_2.RYaxis=0;
-		
- 		
-		
-		// Populate X and Y Axes  - Controller A
-        ADMUX = (ADMUX & 0xF8) | A_Xaxis; // Select X axis 
-		ADCSRA |= (1<<ADSC); // start single convertion
-		while(ADCSRA & (1<<ADSC)); // wait for conversion to complete		
-		gamepad_report_1.RXaxis = ADCH;
-		
-        ADMUX = (ADMUX & 0xF8) | A_Yaxis; // Select Y axis 
-		ADCSRA |= (1<<ADSC); // start single convertion
-		while(ADCSRA & (1<<ADSC)); // wait for conversion to complete		
-		gamepad_report_1.RYaxis = ADCH;		
+		gamepad_report_2.XY_Button1=5;	
 
 		// Populate X/Y axes and button for - Controller A		
 		if ( A5 ) gamepad_report_1.XY_Button1	+= 1;	// Right
@@ -283,18 +342,6 @@ int main()
 		if ( A8 ) gamepad_report_1.XY_Button1	-= 4;	// Up
 		if ( A9 ) gamepad_report_1.XY_Button1	+= 16;	// Button
 
-		
-		// Populate X and Y Axes  - Controller B
-        ADMUX = (ADMUX & 0xF8) | B_Xaxis; // Select X axis 
-		ADCSRA |= (1<<ADSC); // start single convertion
-		while(ADCSRA & (1<<ADSC)); // wait for conversion to complete		
-		gamepad_report_2.RXaxis = ADCH;
-		
-        ADMUX = (ADMUX & 0xF8) | B_Yaxis; // Select Y axis 
-		ADCSRA |= (1<<ADSC); // start single convertion
-		while(ADCSRA & (1<<ADSC)); // wait for conversion to complete		
-		gamepad_report_2.RYaxis = ADCH;		
-
 		// Populate X/Y axes and button for - Controller B		
 		if ( B5 ) gamepad_report_2.XY_Button1	+= 1;	// Right
 		if ( B6 ) gamepad_report_2.XY_Button1	-= 1;   // Left		
@@ -302,6 +349,20 @@ int main()
 		if ( B8 ) gamepad_report_2.XY_Button1	-= 4;	// Up
 		if ( B9 ) gamepad_report_2.XY_Button1	+= 16;	// Button
 		
+		
+		
+		// Paddles are scanned at a rate about 61Hz when a Timer0 overflow occurs
+		if (mustPollControllers())  {   // Check if its time for a new sample
+		    clrPollControllers();       // clear overflow flag
+			sleep_enable();	            // Prepare CPU to sleep in order to synchronize 
+			sleep_cpu();                // the start of the timing with the end of USB
+			sleep_disable();            // interrupt and sleep until it ends
+										
+										// Resume here after interrupt
+			_delay_us(100);             // wait 100us to be sure that no other interrupt will occur
+			do_a_new_sample();          // Then perform a new sample
+		} // if (mustPollControllers)
+				
 		
 		// determine whether or not the report should be sent
 		if ((TCNT1 > ((4 * (F_CPU / 1024000)) * idle_rate) || TCNT1 > 0x7FFF) && idle_rate != 0)

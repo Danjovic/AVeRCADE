@@ -5,7 +5,7 @@
 
 ## General Flags
 PROJECT = AVeRCADE
-MCU = atmega8
+MCU = atmega88
 TARGET = output/$(PROJECT).elf
 CC = avr-gcc
 CCXX = avr-g++

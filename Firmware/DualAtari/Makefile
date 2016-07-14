@@ -4,11 +4,12 @@
 ##################################
 
 ## General Flags
-PROJECT = AVeRCADE
-MCU = atmega88
+PROJECT = AVeRCADE_DualAtari
+MCU = atmega8
 TARGET = output/$(PROJECT).elf
 CC = avr-gcc
 CCXX = avr-g++
+BINDIR = ../bin
 
 FUSEOPT_8 = -U hfuse:w:0xc0:m -U lfuse:w:0x9f:m
 FUSEOPT_88 = -U hfuse:w:0xd6:m -U lfuse:w:0xdf:m -U efuse:w:0x00:m
@@ -49,7 +50,7 @@ HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 ## Include Directories
-INCLUDES = -I"."
+INCLUDES = -I"." -I../usbdrv
 
 ## Libraries
 LIBS = -lm -lc
@@ -67,10 +68,10 @@ all: $(TARGET)
 main.o: ./main.c
 	 $(CC) $(INCLUDES) $(CFLAGS) $(CONLYFLAGS) -c  $<
 
-usbdrv.o: ./usbdrv/usbdrv.c
+usbdrv.o: ../usbdrv/usbdrv.c
 	 $(CC) $(INCLUDES) $(CFLAGS) $(CONLYFLAGS) -c  $<
 
-usbdrvasm.o: ./usbdrv/usbdrvasm.S
+usbdrvasm.o: ../usbdrv/usbdrvasm.S
 	 $(CC) $(INCLUDES) $(ASMFLAGS) -c  $<
 
 
@@ -80,15 +81,15 @@ $(TARGET): $(OBJECTS)
 	-rm -rf $(TARGET) output/$(PROJECT).map
 	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET)
 	-rm -rf $(OBJECTS) main.d usbdrv.d usbdrvasm.d 
-	-rm -rf output/$(PROJECT).hex output/$(PROJECT).eep output/$(PROJECT).lss
-	avr-objcopy -O ihex $(HEX_FLASH_FLAGS) $(TARGET) output/$(PROJECT).hex
+	-rm -rf $(BINDIR)/$(PROJECT)_$(MCU).hex output/$(PROJECT).eep output/$(PROJECT).lss
+	avr-objcopy -O ihex $(HEX_FLASH_FLAGS) $(TARGET) $(BINDIR)/$(PROJECT)_$(MCU).hex
 	avr-objcopy $(HEX_FLASH_FLAGS) -O ihex $(TARGET) output/$(PROJECT).eep || exit 0
 	avr-objdump -h -S $(TARGET) >> output/$(PROJECT).lss
 	@avr-size -C --mcu=${MCU} ${TARGET}
 
 ## Program
 program:
-	avrdude -p $(MCU) -c usbasp  -U flash:w:output/$(PROJECT).hex:a 
+	avrdude -p $(MCU) -c usbasp  -U flash:w:$(BINDIR)/$(PROJECT)_$(MCU).hex:a 
 
 burnfuses:
 	avrdude -p $(MCU) -c usbasp  $(FUSEOPT)  
@@ -96,4 +97,4 @@ burnfuses:
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf $(OBJECTS) hid_tutorial_1_main.d usbdrv.d usbdrvasm.d  output/$(PROJECT).elf output/$(PROJECT).map output/$(PROJECT).lss output/$(PROJECT).hex output/$(PROJECT).eep
+	-rm -rf $(OBJECTS) usbdrv.d usbdrvasm.d  output/$(PROJECT).elf output/$(PROJECT).map output/$(PROJECT).lss $(BINDIR)/$(PROJECT)_$(MCU).hex output/$(PROJECT).eep

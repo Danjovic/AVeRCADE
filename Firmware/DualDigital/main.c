@@ -29,7 +29,7 @@
 #include <avr/sfr_defs.h>
 // V-USB
 #include "usbconfig.h"
-#include "usbdrv/usbdrv.h"
+#include "usbdrv.h"
 
 // Arcade Control - Directional plus 14 buttons
 const PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] = {

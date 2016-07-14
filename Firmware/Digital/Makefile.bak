@@ -81,15 +81,15 @@ $(TARGET): $(OBJECTS)
 	-rm -rf $(TARGET) output/$(PROJECT).map
 	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET)
 	-rm -rf $(OBJECTS) main.d usbdrv.d usbdrvasm.d 
-	-rm -rf $(BINDIR)/$(PROJECT)_$(MCU).hex output/$(PROJECT).eep output/$(PROJECT).lss
-	avr-objcopy -O ihex $(HEX_FLASH_FLAGS) $(TARGET) $(BINDIR)/$(PROJECT)_$(MCU).hex
+	-rm -rf $(BINDIR)/$(PROJECT).hex output/$(PROJECT).eep output/$(PROJECT).lss
+	avr-objcopy -O ihex $(HEX_FLASH_FLAGS) $(TARGET) $(BINDIR)/$(PROJECT).hex
 	avr-objcopy $(HEX_FLASH_FLAGS) -O ihex $(TARGET) output/$(PROJECT).eep || exit 0
 	avr-objdump -h -S $(TARGET) >> output/$(PROJECT).lss
 	@avr-size -C --mcu=${MCU} ${TARGET}
 
 ## Program
 program:
-	avrdude -p $(MCU) -c usbasp  -U flash:w:$(BINDIR)/$(PROJECT)_$(MCU).hex:a 
+	avrdude -p $(MCU) -c usbasp  -U flash:w:$(BINDIR)/$(PROJECT).hex:a 
 
 burnfuses:
 	avrdude -p $(MCU) -c usbasp  $(FUSEOPT)  
@@ -97,4 +97,4 @@ burnfuses:
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf $(OBJECTS) usbdrv.d usbdrvasm.d  output/$(PROJECT).elf output/$(PROJECT).map output/$(PROJECT).lss $(BINDIR)/$(PROJECT)_$(MCU).hex output/$(PROJECT).eep
+	-rm -rf $(OBJECTS) usbdrv.d usbdrvasm.d  output/$(PROJECT).elf output/$(PROJECT).map output/$(PROJECT).lss $(BINDIR)/$(PROJECT).hex output/$(PROJECT).eep

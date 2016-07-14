@@ -4,7 +4,7 @@
 ##################################
 
 ## General Flags
-PROJECT = AVeRCADE_Digital
+PROJECT = AVeRCADE_DualSnesGenesis
 MCU = atmega8
 TARGET = output/$(PROJECT).elf
 CC = avr-gcc

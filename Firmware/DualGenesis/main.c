@@ -60,7 +60,14 @@
 #define GENESIS_2_SELECT_LOW()  PORTB &= ~(1<<PB4)
 #define GENESIS_2_SELECT_HIGH() PORTB |=  (1<<PB4)
 
-#define TBASE  50 
+// Compatibility with ATMEGA8
+#ifndef TCCR0B
+#define TCCR0B TCCR0
+#endif
+
+#ifndef TIFR0
+#define TIFR0 TIFR
+#endif
 
 const PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] = { // Size of report: 100 bytes
     0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)

@@ -78,6 +78,13 @@ usbdrvasm.o: ../usbdrv/usbdrvasm.S
 
 ## Link
 $(TARGET): $(OBJECTS)
+	if [ ! -d "./output" ];then     \
+		mkdir "./output";       \
+	fi
+	
+	if [ ! -d "./$(BINDIR)" ];then  \
+		mkdir $(BINDIR);        \
+	fi
 	-rm -rf $(TARGET) output/$(PROJECT).map
 	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET)
 	-rm -rf $(OBJECTS) main.d usbdrv.d usbdrvasm.d 

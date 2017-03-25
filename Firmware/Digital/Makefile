@@ -5,7 +5,7 @@
 
 ## General Flags
 PROJECT = AVeRCADE_Digital
-MCU = atmega8
+MCU = atmega88
 TARGET = output/$(PROJECT).elf
 CC = avr-gcc
 CCXX = avr-g++
@@ -78,14 +78,6 @@ usbdrvasm.o: ../usbdrv/usbdrvasm.S
 
 ## Link
 $(TARGET): $(OBJECTS)
-	if [ ! -d "./output" ];then     \
-		mkdir "./output";           \
-	fi
-	
-	if [ ! -d "./$(BINDIR)" ];then     \
-		mkdir $(BINDIR);           \
-	fi
-	
 	-rm -rf $(TARGET) output/$(PROJECT).map
 	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET)
 	-rm -rf $(OBJECTS) main.d usbdrv.d usbdrvasm.d 

@@ -11,7 +11,7 @@
  *  Author: Daniel Jose Viana - danjovic@hotmail.com
  *  
  *  Version 0.9 - 10 October 2015
- *
+ *  
  *  This code is licensed under GPL V2.0
  */ 
 
@@ -88,6 +88,19 @@ const PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] 
 #define B8 bit_is_clear(PINB,0)
 #define B9 bit_is_clear(PIND,7)
 
+#define TBASE  50 
+
+// Macros for compatibility with MegaX8
+#ifndef TCCR0
+#define TCCR0 TCCR0B
+#endif
+
+#ifndef TIFR
+#define TIFR TIFR0
+#endif
+
+
+
 
 typedef struct
 {
@@ -158,40 +171,8 @@ void usbSendHidReport(uchar * data, uchar len)
 	}
 }
 
-int main()
-{
-	wdt_disable(); // no watchdog, just because I'm lazy
-    
-	// Configure I/O PORTS - All Digital Inputs (ARCADE)
-	DDRB = 0;
-	DDRC = 0;
-	DDRD = 0;
-	// Configure Pullups except for Pins PD2 and PD3
-	PORTB = 0xff;
-	PORTC = 0xff;
-	PORTD = 0xf3;      // 1 1 1 1 0 0 1 1
-	 
-	// Configure timer 	
-	TCCR1B = _BV(CS12) | _BV(CS11); // timer is initialized, used to keep track of idle period
-	
-	// Start the show!
-	usbInit(); // start v-usb
-    usbDeviceDisconnect(); // enforce USB re-enumeration, do this while interrupts are disabled!
-	_delay_ms(250);
-    usbDeviceConnect();
-	
-    sei(); // enable interrupts
-	
-	uint8_t to_send = 1; // boolean, true for first time
-	
-	while (1)
+void Get_digital_controller_data(void) 
 	{
-		usbPoll();
-		
-		// Initialize Report ID
-		gamepad_report_1.report_id = 1;
-		
-
 		// Initialize report. No buttons pressed, directional at center
 		gamepad_report_1.buttons8_1=0;
 		gamepad_report_1.buttons14_9=0;
@@ -222,6 +203,56 @@ int main()
 		if ( A7 ) gamepad_report_1.buttons14_9	+= 8;	// Button 12	
 		if ( A6 ) gamepad_report_1.buttons14_9	+= 16;	// Button 13
 		if ( A5 ) gamepad_report_1.buttons14_9	+= 32;  // Button 14
+	
+	}
+
+		
+	
+
+
+int main()
+{
+	wdt_disable(); // no watchdog, just because I'm lazy
+    
+	// Configure I/O PORTS - All Digital Inputs (ARCADE)
+	DDRB = 0;
+	DDRC = 0;
+	DDRD = 0;
+	// Configure Pullups except for Pins PD2 and PD3
+	PORTB = 0xff;
+	PORTC = 0xff;
+	PORTD = 0xf3;      // 1 1 1 1 0 0 1 1
+	 
+	// Configure timers 	
+	TCCR1B = _BV(CS12) | _BV(CS11); // timer is initialized, used to keep track of idle period
+	TCCR0 |= (1 << CS00) | (1<<CS02); // timer 0 prescaler 1024, overflow at FOSC/1024/256
+	
+	// Start the show!
+	usbInit(); // start v-usb
+    usbDeviceDisconnect(); // enforce USB re-enumeration, do this while interrupts are disabled!
+	_delay_ms(250);
+    usbDeviceConnect();
+	
+    sei(); // enable interrupts
+	
+	uint8_t to_send = 1; // boolean, true for first time
+	
+	// Initialize Report ID
+	gamepad_report_1.report_id = 1;	
+	
+	
+	while (1)
+	{
+		usbPoll();
+		
+		// Sample controllers each 16ms for 16MHz crystal (22ms for 12MHz)
+		if (TIFR & (1<<TOV0)) {
+					Get_digital_controller_data();
+					TIFR |= (1<<TOV0); // reset overflow flag		
+		}
+		
+		
+	
 		
 		
 		// determine whether or not the report should be sent
